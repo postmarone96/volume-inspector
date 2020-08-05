@@ -170,10 +170,14 @@ def click(event):
     pos = event.pos()
     mapped_pos = imv.getView().mapToView(pos)
     coords = (int(mapped_pos.x()),int(mapped_pos.y()),imv.currentIndex)
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     # if  0 < coords[0] < image.shape[1] - 20 and 0 < coords[1] < image.shape[0] - 20:
-    if  0 < coords[0] < image.shape[1] - patch_dim and 0 < coords[1] < image.shape[0] - patch_dim:
+    upper_x = image.shape[1]# * region["thumbnails"]["downsampling"]
+    upper_y = image.shape[0]# * region["thumbnails"]["downsampling"]
+    print(f"Click coords {coords[0]} < {upper_x} | {coords[1]} < {upper_y}")
+    if  0 < coords[0] < upper_x and 0 < coords[1] < upper_y:
         patchstep = get_patchstep_by_coords(coords)
+        print(f"Returns {patchstep}")
         overlay_item = get_patch_by_patchstep(patchstep)
         set_item_group(overlay_item, click_mode)
         pd(overlay_item["patch"])
@@ -209,7 +213,7 @@ def get_patch_by_patchstep(patchstep):
     return patch
 
 def get_patchstep_by_coords(coords):
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * 2 * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     patch_dim = int(patch_dim)
     x_coord = np.floor(coords[1] / patch_dim).astype(np.int)
     y_coord = np.floor(coords[0] / patch_dim).astype(np.int)
