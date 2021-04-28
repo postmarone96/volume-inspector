@@ -2,14 +2,13 @@ import sys
 import os
 import shutil
 
-sys.path.append("/home/rami/Documents/volume_inspection")
 
 import numpy as np
 import pyqtgraph as pg
-import filehandling
+from util_pkg import filehandling
 
 from pyqtgraph.Qt import QtCore, QtGui
-from plotting import print_dict as pd
+from util_pkg.plotting import print_dict as pd
 
 from components.CrosshairOverlay import CrosshairOverlay
 
@@ -23,13 +22,17 @@ def load_region(path):
     return region, image
 
 def move_patches(event):
-    global region, overlay_list
-    path_candidates = QtGui.QFileDialog.getExistingDirectory(None, 'Open folder', '',  QtGui.QFileDialog.ShowDirsOnly)[0]
+    global region, overlay_list, path_region
+    path_candidates = QtGui.QFileDialog.getExistingDirectory(None, 'Open folder', '',  QtGui.QFileDialog.ShowDirsOnly)#[0]
     local_path = region["dataset"]["localfolder"]
+    if not os.path.exists(local_path):
+        local_path = path_region.replace("Sync/region.pickledump","Local/")
+    print(f"Moving from \n\t{local_path}\nto\n\t{path_candidates}")
     for item in overlay_list:
         if item["patch"]["locationgroup"] == "Candidate":
             stb.showMessage("Moving {}".format(item["patch"]["id"]))
-            shutil.copyfile(local_path + "patchvolume_{}.nii".format(item["patch"]["id"]), path_candidates + "patchvolume_{}.nii".format(item["patch"]["id"]))
+            shutil.copyfile(local_path + "patchvolume_{}.nii.gz".format(item["patch"]["id"]), path_candidates + "/patchvolume_{}.nii.gz".format(item["patch"]["id"]))
+    print("Moved candidates")
     stb.showMessage("")
 
 def delete_patches(event):
@@ -86,6 +89,7 @@ def save_region_as(event):
     for item_overlay, item_region  in zip(overlay_list, region["patches"]):
         if item_region["id"] == item_overlay["patch"]["id"]:
             region["patches"][item_region["id"]] = item_overlay["patch"]
+    print(path_region)
     filehandling.psave(path_region, region)# + "region", region)
     print("Saved file to {}!".format(path_region))
 
@@ -113,8 +117,11 @@ def generate_overlay_list(region, imageview):
 
         patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]# * 2
         
-        x_coord = patch['patchstep'][1] * patch_dim + overlap_correction + patch_dim * 0.5
-        y_coord = patch['patchstep'][0] * patch_dim + overlap_correction + patch_dim * 0.5
+        #TODO Fix, weird behaviour for legacy overlap code
+        # x_coord = patch['patchstep'][1] * patch_dim + overlap_correction + patch_dim * 0.5
+        # y_coord = patch['patchstep'][0] * patch_dim + overlap_correction + patch_dim * 0.5
+        x_coord = patch['patchstep'][1] * (patch_dim)+ patch_dim * 0.5
+        y_coord = patch['patchstep'][0] * (patch_dim)+ patch_dim * 0.5
         z_coord = patch['patchstep'][2]
 
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 100))#color, 1)
@@ -139,6 +146,8 @@ def generate_overlay_list(region, imageview):
     return overlay_list, existing_threshold
 
 def set_item_group(item, group, refresh=True):
+    global region
+    region["patches"][item["patch"]["id"]]["locationgroup"] = group # XXX
     item['patch']['locationgroup'] = group
     if group == 'Outside':
         item['pen'] = QtGui.QPen(QtGui.QColor(255, 0, 0, 150))#QtCore.Qt.red)
@@ -419,11 +428,13 @@ if __name__ == '__main__':
 
     change_slice(0)
     
-    for item in overlay_list:
-        p = item["patch"]
-        ps_y = p["patchstep"][1]
-        if ps_y > 38:
-            set_item_group(item, "Outside", refresh=False)
+    # for item in overlay_list:
+    #     p = item["patch"]
+    #     if p["id"] in [2095, 1169, 625, 1962, 1818, 1847, 1779, 1064, 1749, 570]:
+    #         set_item_group(item, "Candidate", refresh=False)
+        # ps_y = p["patchstep"][1]
+        # if ps_y > 38:
+        #     set_item_group(item, "Outside", refresh=False)
         
     time_change("")
 
