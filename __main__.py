@@ -2,11 +2,9 @@ import sys
 import os
 import shutil
 
-sys.path.append("/home/rami/Documents/volume_inspection")
-
 import numpy as np
 import pyqtgraph as pg
-import filehandling
+from util_pkg import filehandling
 
 from pyqtgraph.Qt import QtCore, QtGui
 from plotting import print_dict as pd
