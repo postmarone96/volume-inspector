@@ -95,8 +95,11 @@ def generate_overlay_list(region, imageview):
     region_len = len(region["patches"])
     print("Patch overlap = " + str(region["partitioning"]["patch_overlap"]))
     overlap_correction = 0
+    seg_l = []
     if region["partitioning"]["patch_overlap"] > 0:
         overlap_correction = region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
+        pass
+    #TODO
     for i, patch in enumerate(region["patches"]):
         stb.showMessage("Generating overlay list for patch {} of {}".format(i, region_len))
         print("Generating overlay for {}".format(patch['id']), end="\r", flush=True)
@@ -113,8 +116,8 @@ def generate_overlay_list(region, imageview):
 
         patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]# * 2
         
-        x_coord = patch['patchstep'][1] * patch_dim + overlap_correction + patch_dim * 0.5
-        y_coord = patch['patchstep'][0] * patch_dim + overlap_correction + patch_dim * 0.5
+        x_coord = patch['patchstep'][1] *( patch_dim - overlap_correction) + patch_dim * 0.5
+        y_coord = patch['patchstep'][0] *( patch_dim - overlap_correction) + patch_dim * 0.5
         z_coord = patch['patchstep'][2]
 
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 100))#color, 1)
@@ -123,6 +126,8 @@ def generate_overlay_list(region, imageview):
         overlay_item['crosshair'] = crosshair_overlay
         overlay_item['pen'] = pen
         set_item_group(overlay_item, patch['locationgroup'], False)
+        if patch['locationgroup'] == "Candidate":
+            seg_l.append(patch["id"])
         # if patch['locationgroup'] == 'Outside':
         #     color = QtGui.QColor(255, 0, 0, 150) # Qt.red
         # elif patch['locationgroup'] == 'Boundary':
@@ -136,6 +141,8 @@ def generate_overlay_list(region, imageview):
     print("\nUpdating image...")
     imageview.updateImage()
     print("Done")
+    print(f"Candidates\n{seg_l}")
+    # exit()
     return overlay_list, existing_threshold
 
 def set_item_group(item, group, refresh=True):
@@ -186,17 +193,21 @@ def click(event):
 
 def move(event):
     global sidebar_label, sidebar_label_template
-    pos = event
+    pos = event#.pos()
     mapped_pos = imv.getView().mapToView(pos)
     coords = (int(mapped_pos.x()),int(mapped_pos.y()),imv.currentIndex)
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     # if  0 < coords[0] < image.shape[1] - 20 and 0 < coords[1] < image.shape[0] - 20:
-    if  0 < coords[0] < image.shape[1] - patch_dim and 0 < coords[1] < image.shape[0] - patch_dim:
+    # if  0 < coords[0] < image.shape[1] - patch_dim and 0 < coords[1] < image.shape[0] - patch_dim:
+    upper_x = image.shape[1]# * region["thumbnails"]["downsampling"]
+    upper_y = image.shape[0]# * region["thumbnails"]["downsampling"]
+    if  0 < coords[0] < upper_x and 0 < coords[1] < upper_y:
         patchstep = get_patchstep_by_coords(coords)
         overlay_item = get_patch_by_patchstep(patchstep)
         sidebar_label = sidebar_label_template.format(overlay_item["patch"]["id"], overlay_item["patch"]["locationgroup"],overlay_item["patch"]["patchstep"])
     else:
         sidebar_label = sidebar_label_template.format("None","None","None")
+    sidebar_label += f"\nPOS\t{str(pos)}\tCOR\t{str(coords)}"
     info_label.setText(sidebar_label)
 
 def get_patch_by_patchstep(patchstep):
@@ -205,6 +216,9 @@ def get_patch_by_patchstep(patchstep):
     patch_id = 0
     # patch_id = 240 * patchstep[0] + 3* patchstep[1] + patchstep[2]
     patch_id = x_step * patchstep[0] + y_step * patchstep[1] + patchstep[2]
+
+    ppd = region["partitioning"]["patches_per_dim"]
+    patch_id = patchstep[0] * ppd[1] * ppd[2] + patchstep[1] * ppd[2] + patchstep[2]
     patch = overlay_list[0]
     if patch_id < len(overlay_list):
         patch = overlay_list[patch_id]
@@ -215,8 +229,10 @@ def get_patch_by_patchstep(patchstep):
 def get_patchstep_by_coords(coords):
     patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     patch_dim = int(patch_dim)
-    x_coord = np.floor(coords[1] / patch_dim).astype(np.int)
-    y_coord = np.floor(coords[0] / patch_dim).astype(np.int)
+    if region["partitioning"]["patch_overlap"] > 0:
+        overlap_correction = region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
+    x_coord = np.floor(coords[1] / (patch_dim - overlap_correction)).astype(np.int64)
+    y_coord = np.floor(coords[0] / (patch_dim - overlap_correction)).astype(np.int64)
     # x_coord = np.floor(coords[1] / 19).astype(np.int)
     # y_coord = np.floor(coords[0] / 19).astype(np.int)
     z_coord = imv.currentIndex
@@ -246,7 +262,7 @@ def get_patch_region(overlay_item):
 
     return image_subregion
 
-def auto_threshold(core=0.5,boundary=0.1):
+def auto_threshold(core=0.5,boundary=0.05):
     global_mean = np.mean(image)
     overlay_list_len = len(overlay_list)
     for i, item in enumerate(overlay_list):

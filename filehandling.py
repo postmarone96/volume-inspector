@@ -22,12 +22,12 @@ def psave(path, variable):
     print("saving " + str(variable)[:15] + " to " + str(path) + "...")
     if(path.find('.pickledump')==-1):
         path = path + '.pickledump'
-    path = path.replace('\\','/')
-    cwd = os.getcwd().replace('\\','/')
-    if(path[0] == cwd[0]):
-        #only turn into absolute path if on same volume
-        if(path[0:2]!=cwd[0:2]):
-            path = os.path.abspath(cwd + '/' + path) # If relative path was given, turn into absolute path
+    #path = path.replace('\\','/')
+    #cwd = os.getcwd().replace('\\','/')
+    #if(path[0] == cwd[0]):
+    #    #only turn into absolute path if on same volume
+    #    if(path[0:2]!=cwd[0:2]):
+    #        path = os.path.abspath(cwd + '/' + path) # If relative path was given, turn into absolute path
     if not os.path.exists(path[0:-17]):
         os.makedirs(path[0:-17])
         #file = os.open(path, flags=os.O_CREAT|os.O_BINARY|os.O_RDWR, mode=740)
