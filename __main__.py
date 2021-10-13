@@ -7,7 +7,7 @@ import pyqtgraph as pg
 from util_pkg import filehandling
 
 from pyqtgraph.Qt import QtCore, QtGui
-from plotting import print_dict as pd
+from util_pkg.plotting import print_dict as pd
 
 from components.CrosshairOverlay import CrosshairOverlay
 
@@ -105,6 +105,7 @@ def generate_overlay_list(region, imageview):
             patch['locationgroup'] = 'Outside' # create entry for any patches that don't have it yet.
         else:
             existing_threshold = True
+
         overlay_item = {}
         overlay_item['patch'] = patch
 
