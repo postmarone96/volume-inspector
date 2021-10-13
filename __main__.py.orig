@@ -2,6 +2,10 @@ import sys
 import os
 import shutil
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9443073d32b4d69e1e81151dc9c95ef2f0fcb843
 import numpy as np
 import pyqtgraph as pg
 from util_pkg import filehandling
@@ -120,8 +124,16 @@ def generate_overlay_list(region, imageview):
 
         patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]# * 2
         
+<<<<<<< HEAD
         x_coord = patch['patchstep'][1] *( patch_dim - overlap_correction) + patch_dim * 0.5
         y_coord = patch['patchstep'][0] *( patch_dim - overlap_correction) + patch_dim * 0.5
+=======
+        #TODO Fix, weird behaviour for legacy overlap code
+        # x_coord = patch['patchstep'][1] * patch_dim + overlap_correction + patch_dim * 0.5
+        # y_coord = patch['patchstep'][0] * patch_dim + overlap_correction + patch_dim * 0.5
+        x_coord = patch['patchstep'][1] * (patch_dim)+ patch_dim * 0.5
+        y_coord = patch['patchstep'][0] * (patch_dim)+ patch_dim * 0.5
+>>>>>>> 9443073d32b4d69e1e81151dc9c95ef2f0fcb843
         z_coord = patch['patchstep'][2]
 
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 100))#color, 1)
