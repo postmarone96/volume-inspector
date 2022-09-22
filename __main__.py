@@ -5,19 +5,97 @@ import shutil
 
 import numpy as np
 import pyqtgraph as pg
-from util_pkg import filehandling
+import pandas as pd
+import dill
 
 from pyqtgraph.Qt import QtCore, QtGui
-from util_pkg.plotting import print_dict as pd
 
 from components.CrosshairOverlay import CrosshairOverlay
 
+def psave(path, variable):
+    '''
+    psave(path, variable)
+    
+    Takes a variable (given as string with its name) and saves it to a file as specified in the path.
+    The path must at least contain the filename (no file ending needed), and can also include a 
+    relative or an absolute folderpath, if the file is not to be saved to the current working directory.
+    
+    # ToDo: save several variables (e.g. take X args, store them to special DICT, and save to file)
+    '''
+    print("saving " + str(variable)[:15] + " to " + str(path) + "...")
+    if(path.find('.pickledump')==-1):
+        path = path + '.pickledump'
+    path = path.replace('\\','/')
+    if not os.path.exists(path[0:-17]):
+        os.makedirs(path[0:-17])
+    print(f"PATH PATH PATH {path}")
+    file = open(path,mode="w+b")
+    dill.dump(variable,file,protocol=4) #pickle.dump
+    print("saved " + str(variable)[:15] + " to " + str(path) + ".")
+
+#%%
+def pload(path):
+    '''
+    variable = pload(path)
+    
+    Loads a variable from a file that was specified in the path. The path must at least contain the 
+    filename (no file ending needed), and can also include a relative or an absolute folderpath, if 
+    the file is not to located in the current working directory.
+    
+    # ToDo: load several variables (e.g. load special DICT from file and return matching entries)
+    '''
+    if(path.find('.pickledump')==-1):
+        path = path + '.pickledump'
+    path = path.replace('\\','/')
+    # cwd = os.getcwd().replace('\\','/')
+    #if(path[0:2]!=cwd[0:2]):
+    #    path = os.path.abspath(cwd + '/' + path) # If relative path was given, turn into absolute path
+    file = open(path, 'rb')
+    return dill.load(file) #pickle.load
+
+def print_dict(dictionary,filterlist=None,printit=True):
+    ''' 
+    textstring = print_dict(dictionary)
+    
+    This takes a dictonary as an input and returns its keys and values as text,
+    such that overly long values are not shown. If a string 'filterlist' is 
+    provided, only entries of that list will be shown
+    '''
+    text = ''
+    keys = list(dictionary.keys())
+    maxlen = len(max(keys, key=len)) + 1
+    for key in keys:
+        value = dictionary[key]
+        infilter = True if filterlist is None else (key in filterlist)
+        if(infilter and type(value)==list):
+            if(0<len(value)<=3 and type(value[0])==int):
+                text = text + key + ' '*(maxlen-len(key))+ ': '+str(value)+'\n'
+            else:
+                text = text + key + ' '*(maxlen-len(key))+ ': (list with '+str(len(value))+' elements)\n'
+        elif(infilter and 'numpy.ndarray' in str(type(value))):
+            if(len(value.shape)==1 and value.shape[0]<5):
+                text = text + key + ' '*(maxlen-len(key))+ ': '+str(value)+'\n'
+            else:
+                text = text + key + ' '*(maxlen-len(key))+ ': (array of size '+str(value.shape)+')\n'
+        elif(infilter and type(value)==dict):
+            text = text + key + ' '*(maxlen-len(key))+ ':\n'
+            deeptext = print_dict(dictionary[key],filterlist=filterlist,printit=False)
+            for line in iter(deeptext.splitlines()):
+                text = text + ' |-> ' + line + '\n'
+        elif(infilter and('float' in str(type(value)) or 'int' in str(type(value)))):
+            text = text + key + ' '*(maxlen-len(key))+ ': '  + str(round(value,2)) + '\n' # scalar metrics
+        elif(infilter):
+            text = text + key + ' '*(maxlen-len(key))+ ': '  + str(value)  + '\n' # vector metrics or text
+    if(printit):
+        print(text)
+    else:
+        return text
 
 def load_region(path):
     global win
-    region = filehandling.pload(path)# + "region")
+    region = pload(path)# + "region")
     image = region["thumbnails"]["MaxProjections_Z"]
-    pd(region)
+    print_dict(region)
     win.setWindowTitle(region["name"])
     return region, image
 
@@ -77,7 +155,7 @@ def save_region(event):
     for item_overlay, item_region  in zip(overlay_list, region["patches"]):
         if item_region["id"] == item_overlay["patch"]["id"]:
             region["patches"][item_region["id"]] = item_overlay["patch"]
-    filehandling.psave(path_region, region)# + "region", region)
+    psave(path_region, region)# + "region", region)
     stb.showMessage("Saved file to {}.pickledump!".format(path_region))
     print("Saved file to {}!".format(path_region))
 
@@ -90,7 +168,7 @@ def save_region_as(event):
         if item_region["id"] == item_overlay["patch"]["id"]:
             region["patches"][item_region["id"]] = item_overlay["patch"]
     print(path_region)
-    filehandling.psave(path_region, region)# + "region", region)
+    psave(path_region, region)# + "region", region)
     print("Saved file to {}!".format(path_region))
 
 def generate_overlay_list(region, imageview):
@@ -120,11 +198,12 @@ def generate_overlay_list(region, imageview):
         #TODO Fix, weird behaviour for legacy overlap code
         # x_coord = patch['patchstep'][1] * patch_dim + overlap_correction + patch_dim * 0.5
         # y_coord = patch['patchstep'][0] * patch_dim + overlap_correction + patch_dim * 0.5
-        x_coord = patch['patchstep'][1] * (patch_dim)+ patch_dim * 0.5
-        y_coord = patch['patchstep'][0] * (patch_dim)+ patch_dim * 0.5
+        x_coord = patch['patchstep'][1] * (patch_dim)+ patch_dim * 0.5 - patch['patchstep'][1] * 0.5
+        y_coord = patch['patchstep'][0] * (patch_dim)+ patch_dim * 0.5 - patch['patchstep'][0] * 0.5
         z_coord = patch['patchstep'][2]
 
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 100))#color, 1)
+        #XXX XXX
         crosshair_overlay = CrosshairOverlay(pos = (x_coord, y_coord), index=z_coord, size=4, pen=pen, movable=False)
 
         overlay_item['crosshair'] = crosshair_overlay
