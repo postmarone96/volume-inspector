@@ -193,7 +193,7 @@ def generate_overlay_list(region, imageview):
         # y_coord = patch['patchstep'][0] * 19 + 10
         # z_coord = patch['patchstep'][2]
 
-        patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]# * 2
+        patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]# - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]# * 2
         
         #TODO Fix, weird behaviour for legacy overlap code
         # x_coord = patch['patchstep'][1] * patch_dim + overlap_correction + patch_dim * 0.5
@@ -258,7 +258,7 @@ def click(event):
     pos = event.pos()
     mapped_pos = imv.getView().mapToView(pos)
     coords = (int(mapped_pos.x()),int(mapped_pos.y()),imv.currentIndex)
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]# - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     # if  0 < coords[0] < image.shape[1] - 20 and 0 < coords[1] < image.shape[0] - 20:
     upper_x = image.shape[1]# * region["thumbnails"]["downsampling"]
     upper_y = image.shape[0]# * region["thumbnails"]["downsampling"]
@@ -301,7 +301,7 @@ def get_patch_by_patchstep(patchstep):
     return patch
 
 def get_patchstep_by_coords(coords):
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]# - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     patch_dim = int(patch_dim)
     x_coord = np.floor(coords[1] / patch_dim).astype(np.int)
     y_coord = np.floor(coords[0] / patch_dim).astype(np.int)
@@ -313,7 +313,7 @@ def get_patchstep_by_coords(coords):
 
 # get the region of the image of the image view
 def get_patch_region(overlay_item):
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * 2 * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]# - region["partitioning"]["patch_overlap"] * 2 * region["thumbnails"]["downsampling"]
     patch_dim = int(patch_dim)
     # x_start = overlay_item['patch']['patchstep'][1] * 19
     # y_start = overlay_item['patch']['patchstep'][0] * 19
@@ -334,16 +334,22 @@ def get_patch_region(overlay_item):
 
     return image_subregion
 
-def auto_threshold(core=0.5,boundary=0.1):
+def auto_threshold(core=0.5,boundary=0.35):
+    print(f"Invocing auto threshold with {core} {boundary}")
     global_mean = np.mean(image)
     overlay_list_len = len(overlay_list)
     for i, item in enumerate(overlay_list):
         stb.showMessage("Generating overlay list for patch {} of {}".format(i, overlay_list_len))
         patch_region = get_patch_region(item)
-        if core < np.mean(patch_region) / global_mean:
+        patch_mean = np.mean(patch_region)
+        # print(f"{i} {core} {patch_mean/global_mean} {boundary}")
+        if core < patch_mean / global_mean:
             set_item_group(item, "Core", False)
-        elif boundary < np.mean(patch_region) / global_mean < core:
+        elif boundary < patch_mean / global_mean < core:
             set_item_group(item, "Boundary", False)
+        else:
+            set_item_group(item, "Outside", False)
+    print(global_mean)
     time_change("")
 
 def change_slice(evt):
@@ -475,7 +481,7 @@ if __name__ == '__main__':
     save_as.triggered.connect(save_region_as)
     save_f.triggered.connect(save_region)
 
-    thresh.triggered.connect(auto_threshold)
+    thresh.triggered.connect(lambda: auto_threshold(0.5,0.35))
     move_p.triggered.connect(move_patches)
     del_e.triggered.connect(delete_patches)
 
