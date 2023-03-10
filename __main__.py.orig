@@ -2,99 +2,25 @@ import sys
 import os
 import shutil
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9443073d32b4d69e1e81151dc9c95ef2f0fcb843
 import numpy as np
 import pyqtgraph as pg
-import pandas as pd
-import dill
+from util_pkg import filehandling
 
 from pyqtgraph.Qt import QtCore, QtGui
+from util_pkg.plotting import print_dict as pd
 
 from components.CrosshairOverlay import CrosshairOverlay
 
-def psave(path, variable):
-    '''
-    psave(path, variable)
-    
-    Takes a variable (given as string with its name) and saves it to a file as specified in the path.
-    The path must at least contain the filename (no file ending needed), and can also include a 
-    relative or an absolute folderpath, if the file is not to be saved to the current working directory.
-    
-    # ToDo: save several variables (e.g. take X args, store them to special DICT, and save to file)
-    '''
-    print("saving " + str(variable)[:15] + " to " + str(path) + "...")
-    if(path.find('.pickledump')==-1):
-        path = path + '.pickledump'
-    path = path.replace('\\','/')
-    if not os.path.exists(path[0:-17]):
-        os.makedirs(path[0:-17])
-    print(f"PATH PATH PATH {path}")
-    file = open(path,mode="w+b")
-    dill.dump(variable,file,protocol=4) #pickle.dump
-    print("saved " + str(variable)[:15] + " to " + str(path) + ".")
-
-#%%
-def pload(path):
-    '''
-    variable = pload(path)
-    
-    Loads a variable from a file that was specified in the path. The path must at least contain the 
-    filename (no file ending needed), and can also include a relative or an absolute folderpath, if 
-    the file is not to located in the current working directory.
-    
-    # ToDo: load several variables (e.g. load special DICT from file and return matching entries)
-    '''
-    if(path.find('.pickledump')==-1):
-        path = path + '.pickledump'
-    path = path.replace('\\','/')
-    # cwd = os.getcwd().replace('\\','/')
-    #if(path[0:2]!=cwd[0:2]):
-    #    path = os.path.abspath(cwd + '/' + path) # If relative path was given, turn into absolute path
-    file = open(path, 'rb')
-    return dill.load(file) #pickle.load
-
-def print_dict(dictionary,filterlist=None,printit=True):
-    ''' 
-    textstring = print_dict(dictionary)
-    
-    This takes a dictonary as an input and returns its keys and values as text,
-    such that overly long values are not shown. If a string 'filterlist' is 
-    provided, only entries of that list will be shown
-    '''
-    text = ''
-    keys = list(dictionary.keys())
-    maxlen = len(max(keys, key=len)) + 1
-    for key in keys:
-        value = dictionary[key]
-        infilter = True if filterlist is None else (key in filterlist)
-        if(infilter and type(value)==list):
-            if(0<len(value)<=3 and type(value[0])==int):
-                text = text + key + ' '*(maxlen-len(key))+ ': '+str(value)+'\n'
-            else:
-                text = text + key + ' '*(maxlen-len(key))+ ': (list with '+str(len(value))+' elements)\n'
-        elif(infilter and 'numpy.ndarray' in str(type(value))):
-            if(len(value.shape)==1 and value.shape[0]<5):
-                text = text + key + ' '*(maxlen-len(key))+ ': '+str(value)+'\n'
-            else:
-                text = text + key + ' '*(maxlen-len(key))+ ': (array of size '+str(value.shape)+')\n'
-        elif(infilter and type(value)==dict):
-            text = text + key + ' '*(maxlen-len(key))+ ':\n'
-            deeptext = print_dict(dictionary[key],filterlist=filterlist,printit=False)
-            for line in iter(deeptext.splitlines()):
-                text = text + ' |-> ' + line + '\n'
-        elif(infilter and('float' in str(type(value)) or 'int' in str(type(value)))):
-            text = text + key + ' '*(maxlen-len(key))+ ': '  + str(round(value,2)) + '\n' # scalar metrics
-        elif(infilter):
-            text = text + key + ' '*(maxlen-len(key))+ ': '  + str(value)  + '\n' # vector metrics or text
-    if(printit):
-        print(text)
-    else:
-        return text
 
 def load_region(path):
     global win
-    region = pload(path)# + "region")
+    region = filehandling.pload(path)# + "region")
     image = region["thumbnails"]["MaxProjections_Z"]
-    print_dict(region)
+    pd(region)
     win.setWindowTitle(region["name"])
     return region, image
 
@@ -154,7 +80,7 @@ def save_region(event):
     for item_overlay, item_region  in zip(overlay_list, region["patches"]):
         if item_region["id"] == item_overlay["patch"]["id"]:
             region["patches"][item_region["id"]] = item_overlay["patch"]
-    psave(path_region, region)# + "region", region)
+    filehandling.psave(path_region, region)# + "region", region)
     stb.showMessage("Saved file to {}.pickledump!".format(path_region))
     print("Saved file to {}!".format(path_region))
 
@@ -167,7 +93,7 @@ def save_region_as(event):
         if item_region["id"] == item_overlay["patch"]["id"]:
             region["patches"][item_region["id"]] = item_overlay["patch"]
     print(path_region)
-    psave(path_region, region)# + "region", region)
+    filehandling.psave(path_region, region)# + "region", region)
     print("Saved file to {}!".format(path_region))
 
 def generate_overlay_list(region, imageview):
@@ -196,17 +122,21 @@ def generate_overlay_list(region, imageview):
         # y_coord = patch['patchstep'][0] * 19 + 10
         # z_coord = patch['patchstep'][2]
 
-        patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]# - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]# * 2
+        patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]# * 2
         
+<<<<<<< HEAD
+        x_coord = patch['patchstep'][1] *( patch_dim - overlap_correction) + patch_dim * 0.5
+        y_coord = patch['patchstep'][0] *( patch_dim - overlap_correction) + patch_dim * 0.5
+=======
         #TODO Fix, weird behaviour for legacy overlap code
         # x_coord = patch['patchstep'][1] * patch_dim + overlap_correction + patch_dim * 0.5
         # y_coord = patch['patchstep'][0] * patch_dim + overlap_correction + patch_dim * 0.5
-        x_coord = patch['patchstep'][1] * (patch_dim)+ patch_dim * 0.5 - patch['patchstep'][1] * 0.5
-        y_coord = patch['patchstep'][0] * (patch_dim)+ patch_dim * 0.5 - patch['patchstep'][0] * 0.5
+        x_coord = patch['patchstep'][1] * (patch_dim)+ patch_dim * 0.5
+        y_coord = patch['patchstep'][0] * (patch_dim)+ patch_dim * 0.5
+>>>>>>> 9443073d32b4d69e1e81151dc9c95ef2f0fcb843
         z_coord = patch['patchstep'][2]
 
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0, 100))#color, 1)
-        #XXX XXX
         crosshair_overlay = CrosshairOverlay(pos = (x_coord, y_coord), index=z_coord, size=4, pen=pen, movable=False)
 
         overlay_item['crosshair'] = crosshair_overlay
@@ -265,7 +195,7 @@ def click(event):
     pos = event.pos()
     mapped_pos = imv.getView().mapToView(pos)
     coords = (int(mapped_pos.x()),int(mapped_pos.y()),imv.currentIndex)
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]# - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     # if  0 < coords[0] < image.shape[1] - 20 and 0 < coords[1] < image.shape[0] - 20:
     upper_x = image.shape[1]# * region["thumbnails"]["downsampling"]
     upper_y = image.shape[0]# * region["thumbnails"]["downsampling"]
@@ -315,7 +245,7 @@ def get_patch_by_patchstep(patchstep):
     return patch
 
 def get_patchstep_by_coords(coords):
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]# - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     patch_dim = int(patch_dim)
     if region["partitioning"]["patch_overlap"] > 0:
         overlap_correction = region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
@@ -329,7 +259,7 @@ def get_patchstep_by_coords(coords):
 
 # get the region of the image of the image view
 def get_patch_region(overlay_item):
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"]# - region["partitioning"]["patch_overlap"] * 2 * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * 2 * region["thumbnails"]["downsampling"]
     patch_dim = int(patch_dim)
     # x_start = overlay_item['patch']['patchstep'][1] * 19
     # y_start = overlay_item['patch']['patchstep'][0] * 19
@@ -350,21 +280,16 @@ def get_patch_region(overlay_item):
 
     return image_subregion
 
-def auto_threshold(core=0.5,boundary=0.35):
+def auto_threshold(core=0.5,boundary=0.05):
     global_mean = np.mean(image)
     overlay_list_len = len(overlay_list)
     for i, item in enumerate(overlay_list):
         stb.showMessage("Generating overlay list for patch {} of {}".format(i, overlay_list_len))
         patch_region = get_patch_region(item)
-        patch_mean = np.mean(patch_region)
-        # print(f"{i} {core} {patch_mean/global_mean} {boundary}")
-        if core < patch_mean / global_mean:
+        if core < np.mean(patch_region) / global_mean:
             set_item_group(item, "Core", False)
-        elif boundary < patch_mean / global_mean < core:
+        elif boundary < np.mean(patch_region) / global_mean < core:
             set_item_group(item, "Boundary", False)
-        else:
-            set_item_group(item, "Outside", False)
-    print(global_mean)
     time_change("")
 
 def change_slice(evt):
@@ -496,7 +421,7 @@ if __name__ == '__main__':
     save_as.triggered.connect(save_region_as)
     save_f.triggered.connect(save_region)
 
-    thresh.triggered.connect(lambda: auto_threshold(0.5,0.35))
+    thresh.triggered.connect(auto_threshold)
     move_p.triggered.connect(move_patches)
     del_e.triggered.connect(delete_patches)
 
