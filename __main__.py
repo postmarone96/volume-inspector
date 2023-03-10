@@ -284,7 +284,7 @@ def move(event):
     pos = event#.pos()
     mapped_pos = imv.getView().mapToView(pos)
     coords = (int(mapped_pos.x()),int(mapped_pos.y()),imv.currentIndex)
-    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] - region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
+    patch_dim = region["partitioning"]["patch_size"][0] * region["thumbnails"]["downsampling"] #- region["partitioning"]["patch_overlap"] * region["thumbnails"]["downsampling"]
     # if  0 < coords[0] < image.shape[1] - 20 and 0 < coords[1] < image.shape[0] - 20:
     # if  0 < coords[0] < image.shape[1] - patch_dim and 0 < coords[1] < image.shape[0] - patch_dim:
     upper_x = image.shape[1]# * region["thumbnails"]["downsampling"]
